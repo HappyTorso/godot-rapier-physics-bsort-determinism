@@ -7,6 +7,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Setup Godot
+        uses: appsinacup/setup-godot-action@main
+        with:
+          version: '4.7-stable'
       - name: Build
         uses: ./.github/actions/build
         with:
