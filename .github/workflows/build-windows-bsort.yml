@@ -1,0 +1,28 @@
+name: Build patched Windows dll (B-sort)
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          arch: x86_64-pc-windows-msvc
+          features: enhanced-determinism,serde-serialize,experimental-threads,register-docs,single-dim2
+
+      - name: Rename to godot-rapier2d addon naming
+        shell: sh
+        run: |
+          ls target/release
+          mkdir -p out
+          cp target/release/godot_rapier.dll out/libgodot_rapier.windows.x86_64-pc-windows-msvc.dll
+
+      - name: Upload
+        uses: actions/upload-artifact@v6
+        with:
+          name: libgodot_rapier-windows-x86_64-msvc-bsort
+          path: out/libgodot_rapier.windows.x86_64-pc-windows-msvc.dll
+          if-no-files-found: error

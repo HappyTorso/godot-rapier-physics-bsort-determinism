@@ -1,0 +1,43 @@
+B-sort: deterministic contact-resolution order for kinematic move_and_slide
+============================================================================
+Target: godot-rapier-physics v0.8.36 (rapier 0.33.0 / parry 0.28.0),
+        single-enhanced-determinism flavor.
+File:   src/spaces/rapier_space_body_helper.rs, fn rapier_intersect_aabb.
+
+WHY: the broad phase yields colliders in BVH-traversal order, which is
+regenerated differently after import_state (godot-rapier #534). The kinematic
+motion recovery (recover_motion_from_contacts — order-dependent accumulation,
+~L105) and the cast tie-break (cast_motion — strict-< first-wins, ~L894) both
+consume this order, so a shuffled order flips the resolved contact on replay.
+Sorting the result set by the stable Godot collider identity (UserData{part1,
+part2}, set at collider creation, independent of Rapier handle order) makes the
+iteration order identical in record and replay. Pure reordering of an existing
+result set — no collision math changed. Only the 3 motion-path callers
+(body_motion_recover, cast_motion, body_motion_collide) reach this helper.
+
+--- a/src/spaces/rapier_space_body_helper.rs
++++ b/src/spaces/rapier_space_body_helper.rs
+@@ rapier_intersect_aabb (tail) @@
+-        physics_engine.intersect_aabb(
++        let count = physics_engine.intersect_aabb(
+             self.get_state().get_id(),
+             vector_to_rapier(rect_begin),
+             vector_to_rapier(rect_end),
+             collide_with_bodies,
+             collide_with_areas,
+             results,
+             max_results,
+             &handle_excluded_info,
+             physics_collision_objects,
+             physics_ids,
+             self,
+-        ) as i32
++        ) as i32;
++        // B-SORT (determinism): broad-phase yields colliders in BVH-traversal order, which is
++        // regenerated differently after import_state (#534); the motion recovery + cast tie-break
++        // are order-dependent. Sort by the stable Godot collider identity so record == replay.
++        if count > 1 {
++            results[0..count as usize].sort_by_key(|r| (r.user_data.part1, r.user_data.part2));
++        }
++        count
+     }

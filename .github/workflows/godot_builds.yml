@@ -1,0 +1,53 @@
+name: Godot Builds
+on:
+  workflow_call:
+
+jobs:
+  godot:
+    runs-on: "ubuntu-latest"
+    name: ${{ matrix.dimensions }} ${{ matrix.precision }} ${{ matrix.features }}
+    strategy:
+      fail-fast: false
+      matrix:
+        precision: [single] #, double]
+        dimensions: ["2d", "3d"]
+        features: ["simd-parallel", "enhanced-determinism"]
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Update plugin.info.cfg
+        shell: sh
+        run: |
+          sed -i "s/<flavour>/godot-rapier-2d-${{ matrix.precision }}-${{ matrix.features }}/g" bin2d/addons/godot-rapier2d/plugin.info.cfg
+          sed -i "s/<flavour>/godot-rapier-3d-${{ matrix.precision }}-${{ matrix.features }}/g" bin3d/addons/godot-rapier3d/plugin.info.cfg
+      - name: Upload
+        uses: actions/upload-artifact@v6
+        with:
+          name: godot-rapier-${{ matrix.dimensions }}-${{ matrix.precision }}-${{ matrix.features }}-gdext
+          path: |
+            bin${{ matrix.dimensions }}
+            !bin${{ matrix.dimensions }}/samples/*
+            !bin${{ matrix.dimensions }}/test/*
+            !bin${{ matrix.dimensions }}/tests/*
+            !bin${{ matrix.dimensions }}/base/*
+            !bin${{ matrix.dimensions }}/export_presets.cfg
+            !bin${{ matrix.dimensions }}/follower_click.gd
+            !bin${{ matrix.dimensions }}/follower_click.gd.uid
+            !bin${{ matrix.dimensions }}/marker_2d.gd
+            !bin${{ matrix.dimensions }}/marker_2d.gd.uid
+            !bin${{ matrix.dimensions }}/project.godot
+            !bin${{ matrix.dimensions }}/start.gd
+            !bin${{ matrix.dimensions }}/start.gd.uid
+            !bin${{ matrix.dimensions }}/start.tscn
+            !bin${{ matrix.dimensions }}/test_fluid.tscn
+            !bin${{ matrix.dimensions }}/test.gd
+            !bin${{ matrix.dimensions }}/test.gd.uid
+            !bin${{ matrix.dimensions }}/test.tscn
+            !bin${{ matrix.dimensions }}/test_motor_position.gd
+            !bin${{ matrix.dimensions }}/test_motor_position.gd.uid
+            !bin${{ matrix.dimensions }}/test_motor_position.tscn
+            !bin${{ matrix.dimensions }}/test_motor_position_beam.gd
+            !bin${{ matrix.dimensions }}/test_motor_position_beam.gd.uid
+            !bin${{ matrix.dimensions }}/test_motor_position_spawner.gd
+            !bin${{ matrix.dimensions }}/test_motor_position_spawner.gd.uid
+          if-no-files-found: error
