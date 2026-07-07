@@ -1,0 +1,39 @@
+name: Build patched Linux so (B-sort)
+on:
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Godot
+        uses: appsinacup/setup-godot-action@main
+        with:
+          version: '4.7-stable'
+      - name: Install dependencies
+        shell: sh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libunwind-dev build-essential pkg-config libssl-dev zlib1g-dev
+          # LLVM for godot-rust api-custom bindgen
+          sudo apt-get install -y llvm-dev libclang-dev clang
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          arch: x86_64-unknown-linux-gnu
+          features: enhanced-determinism,serde-serialize,experimental-threads,register-docs,single-dim2
+
+      - name: Rename to godot-rapier2d addon naming
+        shell: sh
+        run: |
+          ls target/release
+          mkdir -p out
+          cp target/release/libgodot_rapier.so out/libgodot_rapier.linux.x86_64-unknown-linux-gnu.so
+
+      - name: Upload
+        uses: actions/upload-artifact@v6
+        with:
+          name: libgodot_rapier-linux-x86_64-bsort
+          path: out/libgodot_rapier.linux.x86_64-unknown-linux-gnu.so
+          if-no-files-found: error
